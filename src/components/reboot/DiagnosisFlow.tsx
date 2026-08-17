@@ -94,15 +94,11 @@ export function DiagnosisFlow({ answers, step, onAnswers, onStep, onComplete }: 
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: reduce ? 0 : 0.05 + i * 0.03, duration: 0.36, ease: EASE }}
                     className="paper-card flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-all duration-200 active:scale-[0.99]"
-                    style={
-                      active
-                        ? {
-                            boxShadow: "var(--shadow-lift)",
-                            background: "var(--ink)",
-                            color: "var(--paper)",
-                          }
-                        : undefined
-                    }
+                    style={{
+                      boxShadow: active ? "var(--shadow-lift)" : "var(--shadow-soft)",
+                      background: active ? "var(--ink)" : "var(--paper-raised)",
+                      color: active ? "var(--paper)" : "var(--ink)",
+                    }}
                   >
                     <span className="text-[1.0625rem] font-medium tracking-[-0.01em]">
                       {o.label}
