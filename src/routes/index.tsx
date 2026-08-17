@@ -1,24 +1,73 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { AnimatePresence, motion } from "motion/react";
+import { CinematicOnboarding } from "@/components/reboot/CinematicOnboarding";
+import { DiagnosisFlow } from "@/components/reboot/DiagnosisFlow";
+import { Dissolve } from "@/components/reboot/Dissolve";
+import { StartingPoint } from "@/components/reboot/StartingPoint";
+import { CINE_SCREENS } from "@/lib/reboot-content";
+import { useRebootState } from "@/lib/reboot-store";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "REBOOT — Rebuild your attention in 90 days" },
+      {
+        name: "description",
+        content:
+          "Measure how you focus today, then train sustained attention, recall and deep work with a program that adapts to you.",
+      },
+      { property: "og:title", content: "REBOOT — Rebuild your attention in 90 days" },
+      {
+        property: "og:description",
+        content: "Less input. More depth. Start with a two-minute attention diagnosis.",
+      },
+    ],
+  }),
+  component: RebootApp,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function RebootApp() {
+  const { state, patch, reset, hydrated } = useRebootState();
+
+  if (!hydrated) return <div className="min-h-[100dvh] bg-void" />;
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <AnimatePresence mode="wait">
+      {state.phase === "cinematic" && (
+        <motion.div key="cine" exit={{ opacity: 1 }}>
+          <CinematicOnboarding
+            index={state.screen}
+            onAdvance={() =>
+              patch({ screen: Math.min(state.screen + 1, CINE_SCREENS.length - 1) })
+            }
+            onBack={() => patch({ screen: Math.max(0, state.screen - 1) })}
+            onSkip={() => patch({ phase: "dissolve" })}
+            onBegin={() => patch({ phase: "dissolve" })}
+          />
+        </motion.div>
+      )}
+
+      {state.phase === "dissolve" && (
+        <Dissolve key="dissolve" onDone={() => patch({ phase: "diagnosis" })} />
+      )}
+
+      {state.phase === "diagnosis" && (
+        <motion.div key="diag" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <DiagnosisFlow
+            answers={state.answers}
+            step={state.step}
+            onAnswers={(answers) => patch({ answers })}
+            onStep={(step) => patch({ step })}
+            onComplete={() => patch({ phase: "report" })}
+          />
+        </motion.div>
+      )}
+
+      {state.phase === "report" && (
+        <motion.div key="report" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <StartingPoint answers={state.answers} onRestart={reset} />
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
