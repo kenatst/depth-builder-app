@@ -132,13 +132,105 @@
   --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
+/* ── REBOOT design system ─────────────────────────────────────────── */
+
+:root {
+  /* Cinematic (onboarding) */
+  --void: oklch(0 0 0);
+  --signal: oklch(0.58 0.24 27);
+  --cine-fg: oklch(0.98 0.004 90);
+  --cine-muted: oklch(0.78 0.01 60);
+
+  /* Craft-inspired product world */
+  --paper: oklch(0.977 0.008 90);
+  --paper-raised: oklch(0.995 0.004 95);
+  --ink: oklch(0.19 0.012 60);
+  --ink-soft: oklch(0.47 0.012 70);
+  --ink-faint: oklch(0.66 0.01 80);
+  --coral: oklch(0.63 0.19 25);
+  --cyan: oklch(0.72 0.1 210);
+  --hairline: oklch(0.9 0.008 85);
+
+  --shadow-soft: 0 1px 2px oklch(0.3 0.02 70 / 0.04), 0 8px 24px oklch(0.3 0.02 70 / 0.06);
+  --shadow-lift: 0 2px 4px oklch(0.3 0.02 70 / 0.05), 0 18px 44px oklch(0.3 0.02 70 / 0.1);
+
+  --font-sans-ui: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif-ed: "Instrument Serif", ui-serif, Georgia, serif;
+}
+
+@theme inline {
+  --color-void: var(--void);
+  --color-signal: var(--signal);
+  --color-cine-fg: var(--cine-fg);
+  --color-cine-muted: var(--cine-muted);
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-coral: var(--coral);
+  --color-cyan: var(--cyan);
+  --color-hairline: var(--hairline);
+  --font-sans: var(--font-sans-ui);
+  --font-serif: var(--font-serif-ed);
+  --shadow-soft: var(--shadow-soft);
+  --shadow-lift: var(--shadow-lift);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
   }
 
+  html,
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    background-color: var(--void);
+    color: var(--cine-fg);
+    font-family: var(--font-sans-ui);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior: none;
   }
+}
+
+@utility cine-title {
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+@utility meta-label {
+  font-size: 0.6875rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+@utility paper-card {
+  background: var(--paper-raised);
+  border-radius: 28px;
+  box-shadow: var(--shadow-soft);
+}
+
+@utility safe-bottom {
+  padding-bottom: max(1.75rem, env(safe-area-inset-bottom));
+}
+
+@utility safe-top {
+  padding-top: max(1.25rem, env(safe-area-inset-top));
+}
+
+@keyframes reboot-breathe {
+  0%,
+  100% {
+    opacity: 0.32;
+  }
+  50% {
+    opacity: 0.62;
+  }
+}
+
+@utility breathe {
+  animation: reboot-breathe 6.5s ease-in-out infinite;
 }
