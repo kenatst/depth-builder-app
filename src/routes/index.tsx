@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
+import { AppShell } from "@/components/reboot/app/AppShell";
 import { CinematicOnboarding } from "@/components/reboot/CinematicOnboarding";
 import { DiagnosisFlow } from "@/components/reboot/DiagnosisFlow";
 import { Dissolve } from "@/components/reboot/Dissolve";
