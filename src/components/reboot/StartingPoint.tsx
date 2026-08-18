@@ -12,7 +12,15 @@ const FOCUS_COPY: Record<string, string> = {
   gt60: "60+ minutes",
 };
 
-export function StartingPoint({ answers, onRestart }: { answers: Answers; onRestart: () => void }) {
+export function StartingPoint({
+  answers,
+  onRestart,
+  onStart,
+}: {
+  answers: Answers;
+  onRestart: () => void;
+  onStart: () => void;
+}) {
   const primary = answerLabels("primary", answers)[0] ?? "Not chosen yet";
   const breaker = isUnknown("breaker", answers)
     ? "Not identified yet"
