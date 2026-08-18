@@ -14,7 +14,7 @@ export function TodayScreen({
 }: {
   answers: Answers;
   day: number;
-  session?: SessionFeedback;
+  session?: SessionFeedback | undefined;
   onStart: () => void;
 }) {
   const p = prescriptionFor(answers, day);
