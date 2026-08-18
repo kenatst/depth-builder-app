@@ -182,7 +182,10 @@ export function StartingPoint({
 
         <Fade delay={0.5}>
           <div className="mt-8 space-y-3">
-            <button className="w-full rounded-full bg-ink px-6 py-4 text-[1rem] font-semibold tracking-tight text-paper transition-transform duration-200 active:scale-[0.985]">
+            <button
+              onClick={onStart}
+              className="w-full rounded-full bg-ink px-6 py-4 text-[1rem] font-semibold tracking-tight text-paper transition-transform duration-200 active:scale-[0.985]"
+            >
               Start day one
             </button>
             <button
