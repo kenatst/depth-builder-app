@@ -12,7 +12,15 @@ const FOCUS_COPY: Record<string, string> = {
   gt60: "60+ minutes",
 };
 
-export function StartingPoint({ answers, onRestart }: { answers: Answers; onRestart: () => void }) {
+export function StartingPoint({
+  answers,
+  onRestart,
+  onStart,
+}: {
+  answers: Answers;
+  onRestart: () => void;
+  onStart: () => void;
+}) {
   const primary = answerLabels("primary", answers)[0] ?? "Not chosen yet";
   const breaker = isUnknown("breaker", answers)
     ? "Not identified yet"
@@ -174,7 +182,10 @@ export function StartingPoint({ answers, onRestart }: { answers: Answers; onRest
 
         <Fade delay={0.5}>
           <div className="mt-8 space-y-3">
-            <button className="w-full rounded-full bg-ink px-6 py-4 text-[1rem] font-semibold tracking-tight text-paper transition-transform duration-200 active:scale-[0.985]">
+            <button
+              onClick={onStart}
+              className="w-full rounded-full bg-ink px-6 py-4 text-[1rem] font-semibold tracking-tight text-paper transition-transform duration-200 active:scale-[0.985]"
+            >
               Start day one
             </button>
             <button

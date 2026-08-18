@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
+import { AppShell } from "@/components/reboot/app/AppShell";
 import { CinematicOnboarding } from "@/components/reboot/CinematicOnboarding";
 import { DiagnosisFlow } from "@/components/reboot/DiagnosisFlow";
 import { Dissolve } from "@/components/reboot/Dissolve";
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/")({
 });
 
 function RebootApp() {
-  const { state, patch, reset, hydrated } = useRebootState();
+  const { state, patch, reset, completeSession, hydrated } = useRebootState();
 
   if (!hydrated) return <div className="min-h-[100dvh] bg-void" />;
 
@@ -65,7 +66,24 @@ function RebootApp() {
 
       {state.phase === "report" && (
         <motion.div key="report" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <StartingPoint answers={state.answers} onRestart={reset} />
+          <StartingPoint
+            answers={state.answers}
+            onRestart={reset}
+            onStart={() => patch({ phase: "app", tab: "today" })}
+          />
+        </motion.div>
+      )}
+
+      {state.phase === "app" && (
+        <motion.div key="app" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <AppShell
+            answers={state.answers}
+            tab={state.tab}
+            day={state.day}
+            sessions={state.sessions}
+            onTab={(tab) => patch({ tab })}
+            onSession={completeSession}
+          />
         </motion.div>
       )}
     </AnimatePresence>

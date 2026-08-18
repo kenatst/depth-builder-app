@@ -1,18 +1,31 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Answers } from "./reboot-diagnosis";
+import type { SessionFeedback } from "./reboot-program";
 
-export type Phase = "cinematic" | "dissolve" | "diagnosis" | "report";
+export type Phase = "cinematic" | "dissolve" | "diagnosis" | "report" | "app";
+export type Tab = "today" | "train" | "program" | "profile";
 
 export type RebootState = {
   phase: Phase;
   screen: number;
   step: number;
   answers: Answers;
+  tab: Tab;
+  day: number;
+  sessions: SessionFeedback[];
 };
 
-const KEY = "reboot.state.v1";
+const KEY = "reboot.state.v2";
 
-const initial: RebootState = { phase: "cinematic", screen: 0, step: 0, answers: {} };
+const initial: RebootState = {
+  phase: "cinematic",
+  screen: 0,
+  step: 0,
+  answers: {},
+  tab: "today",
+  day: 1,
+  sessions: [],
+};
 
 function read(): RebootState {
   if (typeof window === "undefined") return initial;
@@ -25,6 +38,9 @@ function read(): RebootState {
       ...parsed,
       phase: parsed.phase === "dissolve" ? "diagnosis" : (parsed.phase ?? "cinematic"),
       answers: parsed.answers ?? {},
+      sessions: parsed.sessions ?? [],
+      day: parsed.day ?? 1,
+      tab: parsed.tab ?? "today",
     };
   } catch {
     return initial;
@@ -49,12 +65,18 @@ export function useRebootState() {
     }
   }, [state, hydrated]);
 
-  const patch = useCallback(
-    (p: Partial<RebootState>) => setState((s) => ({ ...s, ...p })),
+  const patch = useCallback((p: Partial<RebootState>) => setState((s) => ({ ...s, ...p })), []);
+
+  const completeSession = useCallback(
+    (feedback: SessionFeedback) =>
+      setState((s) => ({
+        ...s,
+        sessions: [...s.sessions.filter((x) => x.day !== feedback.day), feedback],
+      })),
     [],
   );
 
   const reset = useCallback(() => setState(initial), []);
 
-  return { state, patch, reset, hydrated };
+  return { state, patch, reset, completeSession, hydrated };
 }
