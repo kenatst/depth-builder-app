@@ -26,6 +26,7 @@ export function BottomNav({ tab, onTab }: { tab: Tab; onTab: (t: Tab) => void })
             <button
               key={id}
               onClick={() => onTab(id)}
+              aria-label={label}
               aria-current={active ? "page" : undefined}
               className="relative flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-3 transition-transform duration-200 active:scale-[0.96]"
             >
