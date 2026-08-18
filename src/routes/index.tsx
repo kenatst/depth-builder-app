@@ -27,7 +27,7 @@ export const Route = createFileRoute("/")({
 });
 
 function RebootApp() {
-  const { state, patch, reset, hydrated } = useRebootState();
+  const { state, patch, reset, completeSession, hydrated } = useRebootState();
 
   if (!hydrated) return <div className="min-h-[100dvh] bg-void" />;
 
