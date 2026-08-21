@@ -1,12 +1,21 @@
 import type { Answers } from "./reboot-diagnosis";
-import { answerLabels, isUnknown } from "./reboot-diagnosis";
+import {
+  adaptationNote,
+  buildProfile,
+  durationFor,
+  selectMode,
+  type AttentionProfile,
+  type SessionMode,
+  type SessionResult,
+} from "./reboot-profile";
 
 /**
  * Pure prescription engine — no React, no DOM.
+ * Turns diagnosis + session evidence into today's single instruction.
  * Portable as-is to React Native / Expo.
  */
 
-export type TrainingKind = "baseline" | "attention" | "recall" | "reading" | "finish";
+export type { SessionMode, SessionResult };
 
 export type RealWorldAction = {
   title: string;
@@ -18,223 +27,205 @@ export type RealWorldAction = {
 export type Prescription = {
   day: number;
   totalDays: number;
+  mode: SessionMode;
   headline: string;
   target: string;
   reason: string;
   trainingLabel: string;
-  kind: TrainingKind;
   minutes: number;
   cta: string;
   why: string;
+  /** what the last session changed, if anything */
+  adaptation: string | null;
   action: RealWorldAction;
   signal: { label: string; value: string; note: string };
+  /** in-session instruction shown while the block runs */
+  instruction: string;
 };
 
-const first = (a: Answers, id: string) => a[id]?.[0] ?? "";
+export function prescriptionFor(
+  answers: Answers,
+  day: number,
+  sessions: SessionResult[] = [],
+): Prescription {
+  const p = buildProfile(answers, sessions);
+  const { mode, reasons } = selectMode(p, day, sessions);
+  const minutes = durationFor(p, mode, day);
+  const baseline = day === 1;
 
-const WINDOW_MINUTES: Record<string, number> = {
-  lt5: 10,
-  "5_15": 15,
-  "15_30": 20,
-  "30_60": 30,
-  gt60: 40,
-};
+  const body = baseline ? baselineCopy(p, minutes) : modeCopy(mode, p, minutes);
 
-export function baselineMinutes(answers: Answers) {
-  if (isUnknown("focus_window", answers)) return 20;
-  return WINDOW_MINUTES[first(answers, "focus_window")] ?? 20;
+  return {
+    day,
+    totalDays: 90,
+    mode,
+    minutes,
+    ...body,
+    why: `${body.why} ${reasons.join(" ")}`.trim(),
+    adaptation: adaptationNote(p, sessions),
+    signal: signalFor(p, day),
+  };
 }
 
-function profile(answers: Answers) {
-  const primary = first(answers, "primary");
-  const goals = answers["goals"] ?? [];
-  const phoneish =
-    primary === "scroll_less" ||
-    primary === "phone_less" ||
-    goals.includes("scroll_less") ||
-    goals.includes("phone_less");
-  const recallish =
-    primary === "remember_more" ||
-    primary === "study_better" ||
-    goals.includes("remember_more");
-  const readish = primary === "read_more" || goals.includes("read_more");
-  const deepish = primary === "deep_work" || primary === "focus_better" || primary === "build_flow";
-  return { primary, phoneish, recallish, readish, deepish };
-}
+type Body = Omit<
+  Prescription,
+  "day" | "totalDays" | "mode" | "minutes" | "adaptation" | "signal"
+>;
 
-/** Day 1–7 is calibration; day 1 is a pure, unmodified baseline. */
-export function prescriptionFor(answers: Answers, day: number): Prescription {
-  const p = profile(answers);
-  const minutes = baselineMinutes(answers);
-  const breaker = isUnknown("breaker", answers) ? "" : (answerLabels("breaker", answers)[0] ?? "");
-  const app = isUnknown("social_app", answers) ? "" : (answerLabels("social_app", answers)[0] ?? "");
-  const place = isUnknown("phone_place", answers) ? "" : first(answers, "phone_place");
-  const workBreak = isUnknown("work_break", answers) ? "" : first(answers, "work_break");
-  const recallTarget = isUnknown("recall_target", answers)
-    ? ""
-    : (answerLabels("recall_target", answers)[0]?.toLowerCase() ?? "");
-  const energy = isUnknown("energy", answers) ? "" : (answerLabels("energy", answers)[0] ?? "");
-
-  // ---- Day 1: honest baseline, nothing changed yet -------------------
-  if (day === 1) {
-    const headline = p.phoneish
+function baselineCopy(p: AttentionProfile, minutes: number): Body {
+  return {
+    headline: p.phoneish
       ? "Watch the reflex."
       : p.recallish
         ? "Read it once."
         : p.readish
           ? "Sit with the page."
-          : "Work as usual.";
-
-    const reason = p.phoneish
-      ? `Before anything changes, REBOOT needs to see the reflex as it really is${app ? ` — including every pull toward ${app}` : ""}.`
+          : "Work as usual.",
+    target: `One ${minutes}-minute block of your normal work`,
+    reason: p.phoneish
+      ? `Before anything changes, REBOOT needs to see the reflex as it really is${p.app ? ` — including every pull toward ${p.app}` : ""}.`
       : p.recallish
         ? "We need an untouched sample of how much survives a single pass before any recall work begins."
-        : p.deepish
-          ? `Today is a measurement, not a test${workBreak === "starting" ? " — including how long it takes you to start" : ""}.`
-          : "Today measures where you actually are, not where you'd like to be.";
-
-    return {
-      day,
-      totalDays: 90,
-      headline,
-      target: `One ${minutes}-minute block of your normal work`,
-      reason,
-      trainingLabel: "Baseline block · calibration",
-      kind: "baseline",
-      minutes,
-      cta: "Start baseline block",
-      why: `You told us your primary goal is ${answerLabels("primary", answers)[0]?.toLowerCase() ?? "focus"}${breaker ? `, and that ${breaker.toLowerCase()} breaks you most often` : ""}. Day one changes nothing: same desk, same phone, same habits. REBOOT can only prescribe honestly once it has seen one untouched block, so today the only job is to work normally for ${minutes} minutes and tell us what happened.`,
-      action: {
-        title: "Change nothing today",
-        body: `Leave your phone exactly where it usually is${place === "in_hand" ? " — in your hand, if that's the truth" : ""}. No new rules, no blockers. Just notice.`,
-        fallbackTitle: "Then just note one thing",
-        fallbackBody:
-          "If even that feels like too much, write down a single sentence after the block: what pulled you away first.",
-      },
-      signal: {
-        label: "Best hours",
-        value: energy || "Unmeasured",
-        note: energy
-          ? `Run today's block in your ${energy.toLowerCase()} window if you can.`
-          : "REBOOT will find your real energy curve over the first week.",
-      },
-    };
-  }
-
-  // ---- Days 2–7: still calibration, small honest variations ----------
-  const kind: TrainingKind = p.recallish
-    ? "recall"
-    : p.readish
-      ? "reading"
-      : p.phoneish
-        ? "attention"
-        : "finish";
-
-  const map: Record<TrainingKind, Omit<Prescription, "day" | "totalDays" | "minutes" | "signal">> = {
-    baseline: {
-      headline: "Work as usual.",
-      target: `One ${minutes}-minute block of your normal work`,
-      reason: "Another clean sample.",
-      trainingLabel: "Baseline block · calibration",
-      kind: "baseline",
-      cta: "Start block",
-      why: "REBOOT is still collecting untouched blocks.",
-      action: {
-        title: "Change nothing today",
-        body: "Same desk, same phone, same habits.",
-        fallbackTitle: "Then just note one thing",
-        fallbackBody: "Write one sentence about what pulled you away first.",
-      },
-    },
-    attention: {
-      headline: "Cut the noise.",
-      target: `One ${minutes}-minute block with the phone out of reach`,
-      reason: `The reflex to check${app ? ` ${app}` : ""} is faster than the decision to check. Distance beats willpower.`,
-      trainingLabel: "Attention block · calibration",
-      kind: "attention",
-      cta: "Start attention block",
-      why: `Your primary goal is about the phone, and ${breaker ? breaker.toLowerCase() : "the reflex"} is what breaks you. Today we test one variable only: distance. Same work, same length — the phone just isn't within arm's reach.`,
-      action: {
-        title: "Put the phone in another room",
-        body: "Before you start, not after the first urge.",
-        fallbackTitle: "Face down, screen off, out of the sightline",
-        fallbackBody: "If another room isn't possible, distance of any kind still counts today.",
-      },
-    },
-    recall: {
-      headline: "Say it back.",
-      target: `One ${minutes}-minute block, then recall it from memory`,
-      reason: `Rereading feels like learning. Retrieval is learning${recallTarget ? ` — starting with your ${recallTarget}` : ""}.`,
-      trainingLabel: "Recall block · calibration",
-      kind: "recall",
-      cta: "Start recall block",
-      why: `You came here to hold on to ${recallTarget || "what you read"}. Today's block ends with the book closed and two minutes of writing down everything you can remember. It will feel worse than rereading — that's the point.`,
-      action: {
-        title: "Keep one blank page next to you",
-        body: "Paper, not a screen. It becomes today's recall sheet.",
-        fallbackTitle: "Use the notes app, empty",
-        fallbackBody: "A blank note works. Just don't open the source material while writing.",
-      },
-    },
-    reading: {
-      headline: "Stay with it.",
-      target: `${minutes} minutes of reading, one text only`,
-      reason: "Rereading the same lines is a pacing problem, not an intelligence problem.",
-      trainingLabel: "Reading block · calibration",
-      kind: "reading",
-      cta: "Start reading block",
-      why: "Reading is where your attention shows itself most clearly. One text, no tabs, no switching — we measure how far you get before the drift begins.",
-      action: {
-        title: "Choose the text before you sit down",
-        body: "Deciding what to read is a separate job from reading.",
-        fallbackTitle: "Reread something you already own",
-        fallbackBody: "Anything you've already started counts. Don't shop for a book today.",
-      },
-    },
-    finish: {
-      headline: "Draw the finish line.",
-      target: `One ${minutes}-minute block on a task with a visible end`,
-      reason:
-        workBreak === "finishing"
-          ? "You don't lose the work in the middle — you lose it at the end. So define the end first."
-          : "Vague tasks leak attention. A finish line holds it.",
-      trainingLabel: "Deep work block · calibration",
-      kind: "finish",
-      cta: "Start deep block",
-      why: `Your work breaks down at ${workBreak || "the edges"}. Before starting, write one sentence describing what "done" looks like for this block. The sentence is the intervention — the block just proves it works.`,
-      action: {
-        title: "Write your finish line first",
-        body: 'One sentence: "This block is done when ___."',
-        fallbackTitle: "Name the next single step",
-        fallbackBody: "If you can't see the end, name only the next step and stop there.",
-      },
-    },
-  };
-
-  const base = map[kind];
-
-  return {
-    ...base,
-    day,
-    totalDays: 90,
-    minutes,
-    signal: {
-      label: "Calibration week",
-      value: `Day ${day} of 7`,
-      note: "REBOOT is still building your real profile. Nothing is scored yet.",
+        : "Today measures where you actually are, not where you'd like to be.",
+    trainingLabel: "STAY · baseline",
+    cta: "Start baseline block",
+    why: `You told us your primary goal is ${p.primaryLabel.toLowerCase()}${p.breaker ? `, and that ${p.breaker.toLowerCase()} breaks you most often` : ""}. Day one changes nothing: same desk, same phone, same habits.`,
+    instruction: "Work normally. Don't fix your environment. Just notice what happens.",
+    action: {
+      title: "Change nothing today",
+      body: `Leave your phone exactly where it usually is${p.place === "in_hand" ? " — in your hand, if that's the truth" : ""}. No new rules, no blockers.`,
+      fallbackTitle: "Then just note one thing",
+      fallbackBody:
+        "Write down a single sentence after the block: what pulled you away first.",
     },
   };
 }
 
-export type SessionFeedback = {
-  day: number;
-  completedAt: string;
-  minutes: number;
-  firstDistraction: string;
-  switches: string;
-  difficulty: string;
-  energy: string;
-};
+function modeCopy(mode: SessionMode, p: AttentionProfile, minutes: number): Body {
+  switch (mode) {
+    case "recall":
+      return {
+        headline: "Say it back.",
+        target: `${minutes} minutes of reading, then rebuild it from memory`,
+        reason: `Rereading feels like learning. Retrieval is learning${p.recallTarget ? ` — starting with your ${p.recallTarget}` : ""}.`,
+        trainingLabel: "RECALL · retrieval block",
+        cta: "Start recall block",
+        why: `You came here to hold on to ${p.recallTarget || "what you read"}. This block ends with the source closed and everything you remember written down.`,
+        instruction: "Read one source. When the timer ends, close it — nothing open while you write.",
+        action: {
+          title: "Keep one blank page next to you",
+          body: "Paper, not a screen. It becomes today's recall sheet.",
+          fallbackTitle: "Use the notes app, empty",
+          fallbackBody: "A blank note works. Just don't reopen the source while writing.",
+        },
+      };
+    case "explain":
+      return {
+        headline: "Teach it back.",
+        target: `${minutes} minutes learning one idea, then explain it simply`,
+        reason: "If you can't say it plainly, you haven't understood it yet.",
+        trainingLabel: "EXPLAIN · understanding block",
+        cta: "Start explain block",
+        why: `Your work breaks down at ${p.workBreak || "the edges"}, and explaining is the fastest way to find the gap.`,
+        instruction: "Learn one thing well. At the end, explain it out loud as if to a beginner.",
+        action: {
+          title: "Pick the person you're explaining to",
+          body: "A friend, a student, a younger you. Naming them sharpens the language.",
+          fallbackTitle: "Explain it to the page",
+          fallbackBody: "Write the explanation instead of saying it. Same job.",
+        },
+      };
+    case "nothing":
+      return {
+        headline: "Do nothing.",
+        target: `${minutes} minutes with no input at all`,
+        reason: "Boredom tolerance is the muscle underneath attention. Today we train it directly.",
+        trainingLabel: "NOTHING · tolerance block",
+        cta: "Start nothing block",
+        why: "The last blocks landed hard, so REBOOT is not adding load today. Sit with no new stimulus and let the urge pass without acting on it.",
+        instruction: "No phone, no music, no reading. Sit. Let the urges arrive and leave.",
+        action: {
+          title: "Leave the phone in another room",
+          body: "For this block it isn't a rule — it's the whole exercise.",
+          fallbackTitle: "Face down, out of the sightline",
+          fallbackBody: "If another room isn't possible, any distance still counts.",
+        },
+      };
+    case "observe":
+      return {
+        headline: "Catch it live.",
+        target: "One real-world observation mission, off-screen",
+        reason: `The reflex to check${p.app ? ` ${p.app}` : ""} is faster than the decision to check. Today you only watch it happen.`,
+        trainingLabel: "OBSERVE · field mission",
+        cta: "Start observation",
+        why: `${p.dominantDistraction === "phone" ? "Your phone was the first thing to break your last block. " : ""}Before REBOOT changes the reflex, you need to see its trigger with your own eyes.`,
+        instruction:
+          "Go about your day. The first time you reach for your phone without deciding to, stop and write down what happened just before.",
+        action: {
+          title: "One sentence, at the moment it happens",
+          body: "Not later from memory. The trigger is only visible in the second it fires.",
+          fallbackTitle: "Log it at the end of the day",
+          fallbackBody: "One honest reconstruction is better than nothing at all.",
+        },
+      };
+    case "stay":
+    default:
+      return {
+        headline: p.phoneish ? "Cut the noise." : p.deepish ? "Draw the finish line." : "Stay with it.",
+        target: p.phoneish
+          ? `One ${minutes}-minute block with the phone out of reach`
+          : `One unbroken ${minutes}-minute block on a single task`,
+        reason: p.phoneish
+          ? "Distance beats willpower. Same work, one variable changed."
+          : p.workBreak === "finishing"
+            ? "You don't lose the work in the middle — you lose it at the end. So define the end first."
+            : "One task, start to finish. Every switch gets counted.",
+        trainingLabel: "STAY · sustained block",
+        cta: "Start stay block",
+        why: p.phoneish
+          ? `${p.breaker ? `${p.breaker} is what breaks you.` : ""} Today tests one variable only: distance.`
+          : `Before starting, write one sentence describing what "done" looks like for this block.`,
+        instruction: "One task only. If you switch, come back and log it at the end.",
+        action: p.phoneish
+          ? {
+              title: "Put the phone in another room",
+              body: "Before you start, not after the first urge.",
+              fallbackTitle: "Face down, screen off, out of the sightline",
+              fallbackBody: "If another room isn't possible, distance of any kind still counts.",
+            }
+          : {
+              title: "Write your finish line first",
+              body: 'One sentence: "This block is done when ___."',
+              fallbackTitle: "Name the next single step",
+              fallbackBody: "If you can't see the end, name only the next step and stop there.",
+            },
+      };
+  }
+}
+
+function signalFor(p: AttentionProfile, day: number): Prescription["signal"] {
+  if (p.measuredMinutes !== null) {
+    return {
+      label: "Measured so far",
+      value: `${p.measuredMinutes} min held`,
+      note: `Across ${p.evidenceCount} logged ${p.evidenceCount === 1 ? "block" : "blocks"}. Nothing is scored — this is only what you actually did.`,
+    };
+  }
+  if (day === 1) {
+    return {
+      label: "Best hours",
+      value: p.energyWindow || "Unmeasured",
+      note: p.energyWindow
+        ? `Run today's block in your ${p.energyWindow.toLowerCase()} window if you can.`
+        : "REBOOT will find your real energy curve over the first week.",
+    };
+  }
+  return {
+    label: "Calibration week",
+    value: `Day ${day} of 7`,
+    note: "REBOOT is still building your real profile. Nothing is scored yet.",
+  };
+}
 
 export const FIRST_DISTRACTION = [
   { value: "phone", label: "My phone" },
@@ -265,4 +256,11 @@ export const ENERGY_AFTER = [
   { value: "flat", label: "Flat" },
   { value: "steady", label: "Steady" },
   { value: "sharp", label: "Sharp" },
+];
+
+export const RESPONSE_QUALITY = [
+  { value: "blank", label: "Almost nothing came back" },
+  { value: "fragments", label: "Fragments and headlines" },
+  { value: "most", label: "Most of it, in my own words" },
+  { value: "clean", label: "All of it, clearly" },
 ];
