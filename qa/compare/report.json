@@ -1,0 +1,140 @@
+[
+  {
+    "state": "cine-1",
+    "mean": 9.5,
+    "bottomMean": 19,
+    "maxDelta": 255
+  },
+  {
+    "state": "cine-2",
+    "mean": 9.3,
+    "bottomMean": 19.5,
+    "maxDelta": 255
+  },
+  {
+    "state": "cine-3",
+    "mean": 7.9,
+    "bottomMean": 16.2,
+    "maxDelta": 255
+  },
+  {
+    "state": "cine-4",
+    "mean": 9.9,
+    "bottomMean": 20.8,
+    "maxDelta": 255
+  },
+  {
+    "state": "cine-5",
+    "mean": 9.8,
+    "bottomMean": 15.5,
+    "maxDelta": 255
+  },
+  {
+    "state": "cine-6",
+    "mean": 7.8,
+    "bottomMean": 16.4,
+    "maxDelta": 255
+  },
+  {
+    "state": "d1-goals",
+    "mean": 7.8,
+    "bottomMean": 4.1,
+    "maxDelta": 255
+  },
+  {
+    "state": "d1-goals-selected",
+    "mean": 12.3,
+    "bottomMean": 9.3,
+    "maxDelta": 255
+  },
+  {
+    "state": "d2-primary",
+    "mean": 9.2,
+    "bottomMean": 1.7,
+    "maxDelta": 255
+  },
+  {
+    "state": "d3-breaker",
+    "mean": 15.9,
+    "bottomMean": 11.3,
+    "maxDelta": 255
+  },
+  {
+    "state": "d4-social_app",
+    "mean": 14.4,
+    "bottomMean": 10.1,
+    "maxDelta": 255
+  },
+  {
+    "state": "d5-phone_place",
+    "mean": 9.1,
+    "bottomMean": 2.7,
+    "maxDelta": 255
+  },
+  {
+    "state": "d6-focus_window",
+    "mean": 9.5,
+    "bottomMean": 3.4,
+    "maxDelta": 255
+  },
+  {
+    "state": "d7-work_break",
+    "mean": 9.2,
+    "bottomMean": 3.9,
+    "maxDelta": 255
+  },
+  {
+    "state": "d8-reading",
+    "mean": 7.5,
+    "bottomMean": 2,
+    "maxDelta": 255
+  },
+  {
+    "state": "d9-recall_target",
+    "mean": 8.7,
+    "bottomMean": 2.7,
+    "maxDelta": 255
+  },
+  {
+    "state": "d10-environment",
+    "mean": 10.2,
+    "bottomMean": 4.8,
+    "maxDelta": 255
+  },
+  {
+    "state": "d11-energy",
+    "mean": 8.9,
+    "bottomMean": 3.5,
+    "maxDelta": 255
+  },
+  {
+    "state": "d12-absorption",
+    "mean": 11.6,
+    "bottomMean": 8.4,
+    "maxDelta": 255
+  },
+  {
+    "state": "d12-absorption-selected",
+    "mean": 10.8,
+    "bottomMean": 4.9,
+    "maxDelta": 255
+  },
+  {
+    "state": "d13-flow_exit",
+    "mean": 11.1,
+    "bottomMean": 3.5,
+    "maxDelta": 255
+  },
+  {
+    "state": "d14-session_target",
+    "mean": 9.9,
+    "bottomMean": 2.5,
+    "maxDelta": 255
+  },
+  {
+    "state": "report",
+    "mean": 16,
+    "bottomMean": 15,
+    "maxDelta": 255
+  }
+]
